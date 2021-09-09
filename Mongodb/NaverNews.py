@@ -3,12 +3,33 @@
 이름 : 박시현
 내용 :  파이썬 가상브라우저 뉴스 크롤링 실습
 """
-
+import datetime
 import time
 from selenium import webdriver
+from pymongo import MongoClient as mongo
+import logging, time
 
-# 가상브라우저 실행
-browser = webdriver.Chrome('./chromedriver.exe')
+# 로거 생성 (프로그램의 흐름을 추적 관리하는 로거...)
+logger = logging.getLogger('naver_news_logger')
+logger.setLevel(logging.INFO)
+
+# 로그 포맷 설정
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# 로그 핸들러
+fileHandler = logging.FileHandler('./NaverNews.log')
+fileHandler.setLevel(logging.INFO)
+fileHandler.setFormatter(formatter)
+logger.addHandler(fileHandler)
+
+
+# 가상브라우저 실행(Headless 모드로 실행 - 창이 새로 뜨진 않고 콘솔에만 보이게 만드는 작업)
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument('--headless')
+chrome_options.add_argument('--no-sandbox')
+chrome_options.add_argument('--disable-dev-shm-usage')
+browser = webdriver.Chrome('./chromedriver.exe', options=chrome_options)
+
 
 # 네이버 뉴스 이동 - IT/일반 의 모든 뉴스를 다 파싱할 것임
 browser.get('https://news.naver.com/main/list.naver?mode=LS2D&mid=shm&sid1=105&sid2=230')
@@ -16,6 +37,13 @@ browser.get('https://news.naver.com/main/list.naver?mode=LS2D&mid=shm&sid1=105&s
 
 i, page = 0, 1
 j = 0
+
+# MongoDB 접속
+conn = mongo('mongodb://maro:1234@192.168.56.101:27017')
+db = conn.get_database('maro')
+collection = db.get_collection('NaverNews')
+
+
 
 while True:
 
@@ -29,7 +57,8 @@ while True:
         break
 
 
-    print('%s 수집시작'% viewday)
+    #print('%s 수집시작'% viewday)
+    logger.info('%d 페이지 완료...' % page)
 
 
 
@@ -39,13 +68,18 @@ while True:
             tags_a = browser.find_elements_by_css_selector('#main_content > div.list_body.newsflash_body > ul > li > dl > dt:not(.photo) > a') #ul 2개 X li 6개
 
             for index, tag in enumerate(tags_a):
-                pass
+
                 #print('{}\t{}\t{}'.format(index, tag.text, tag.get_attribute('href')))
+                collection.insert_one({'index':index,
+                                       'title':tag.text,
+                                       'href':tag.get_attribute('href'),
+                                       'rdate':datetime.datetime.now()})
 
             # 다음 페이지 클릭
             pages_a = browser.find_elements_by_css_selector('#main_content > div.paging > a')
             pages_a[i].click() #2페이지
-            print('%d 페이지 완료...'% page)
+            #print('%d 페이지 완료...'% page)
+            logger.info('%d 페이지 완료...' % page)
 
             i += 1
             page += 1
@@ -67,6 +101,9 @@ while True:
                 j += 1
 
             break
+
+# MongoDB 종료
+conn.close()
 
 # 브라우저 종료
 browser.quit()
