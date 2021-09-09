@@ -8,7 +8,7 @@
 
 import requests as req
 
-from bs4 import BeautifulSoup as bs
+from bs4 import BeautifulSoup as bs #정적페이지
 
 # 페이지 요청
 url = 'https://news.naver.com/main/home.naver'

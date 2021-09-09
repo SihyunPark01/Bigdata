@@ -4,7 +4,7 @@
 내용 :  파이썬 Selenium(가상 브라우저) 패키지 실습
 """
 
-from selenium import webdriver
+from selenium import webdriver #동적페이지
 
 # 가상 브라우저 실행 - chrome webdriver 다운받아서 crawling에 복붙해야함
 browser = webdriver.Chrome('./chromedriver.exe')
